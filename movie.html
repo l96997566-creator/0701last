@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CineHub — 영화 탐색기</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg:      #0d0d0d;
+  --surface: #181818;
+  --card:    #1e1e1e;
+  --accent:  #e50914;
+  --gold:    #f5c518;
+  --text:    #ffffff;
+  --muted:   #888;
+  --border:  #2a2a2a;
+  --radius:  10px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  min-height: 100vh;
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(13,13,13,.97);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.logo {
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--accent);
+  letter-spacing: -1px;
+  cursor: pointer;
+  flex-shrink: 0;
+  user-select: none;
+}
+.search-wrap {
+  flex: 1;
+  max-width: 500px;
+  min-width: 180px;
+  position: relative;
+}
+.search-wrap input {
+  width: 100%;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  color: var(--text);
+  padding: 10px 70px 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .2s;
+}
+.search-wrap input:focus { border-color: var(--accent); }
+.search-wrap input::placeholder { color: var(--muted); }
+.search-icon {
+  position: absolute;
+  right: 14px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+.search-clear {
+  position: absolute;
+  right: 36px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 15px;
+  display: none;
+  padding: 4px;
+  line-height: 1;
+}
+.search-clear:hover { color: var(--text); }
+
+/* ── Genre bar ───────────────────────────────────────────────── */
+.genre-bar {
+  background: var(--surface);
+  padding: 10px 28px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--border);
+}
+.genre-bar::-webkit-scrollbar { display: none; }
+.genre-btn {
+  background: var(--card);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .2s;
+  flex-shrink: 0;
+}
+.genre-btn:hover { border-color: var(--accent); color: var(--text); }
+.genre-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 700;
+}
+
+/* ── Section head ────────────────────────────────────────────── */
+.section-head {
+  padding: 28px 28px 14px;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.section-head h2 { font-size: 20px; font-weight: 700; }
+.section-head .section-sub { font-size: 13px; color: var(--muted); }
+
+/* ── Movie grid ──────────────────────────────────────────────── */
+.movie-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+  padding: 0 28px 32px;
+}
+
+/* ── Movie card ──────────────────────────────────────────────── */
+.movie-card {
+  cursor: pointer;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--card);
+  transition: transform .22s, box-shadow .22s;
+  position: relative;
+  border: 2px solid transparent;
+}
+.movie-card.trailer-watched {
+  border-color: #e53935;
+}
+.movie-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 40px rgba(229,9,20,.3);
+}
+.movie-card .poster-wrap {
+  position: relative;
+  overflow: hidden;
+}
+.movie-card img {
+  width: 100%;
+  aspect-ratio: 2/3;
+  object-fit: cover;
+  display: block;
+  background: var(--border);
+}
+.movie-card .play-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,.5);
+  font-size: 48px;
+  opacity: 0;
+  transition: opacity .2s;
+}
+.movie-card:hover .play-icon { opacity: 1; }
+.movie-card .card-info {
+  padding: 10px 12px 12px;
+}
+.movie-card .card-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-bottom: 5px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.movie-card .card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--muted);
+}
+.card-rating { color: var(--gold); font-weight: 700; }
+.rank-badge {
+  position: absolute;
+  top: 0; left: 0;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  width: 28px; height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0 0 var(--radius) 0;
+}
+
+/* ── Load More ───────────────────────────────────────────────── */
+.load-more-wrap { text-align: center; padding: 0 28px 48px; }
+.load-more-btn {
+  background: var(--card);
+  color: var(--text);
+  border: 1.5px solid var(--border);
+  padding: 12px 40px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all .2s;
+}
+.load-more-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Spinner ─────────────────────────────────────────────────── */
+.spinner-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 80px;
+  grid-column: 1 / -1;
+}
+.spinner {
+  width: 40px; height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── No results ──────────────────────────────────────────────── */
+.no-results {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 80px 24px;
+  color: var(--muted);
+}
+.no-results h3 { font-size: 22px; margin-bottom: 10px; color: var(--text); }
+
+/* ── Modal overlay ───────────────────────────────────────────── */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.88);
+  z-index: 500;
+  overflow-y: auto;
+  padding: 24px 16px;
+}
+.modal-overlay.open { display: flex; align-items: flex-start; justify-content: center; }
+
+.modal {
+  background: var(--surface);
+  border-radius: 14px;
+  width: 100%;
+  max-width: 920px;
+  overflow: hidden;
+  position: relative;
+  margin: auto;
+}
+
+.modal-close {
+  position: absolute;
+  top: 14px; right: 14px;
+  background: rgba(0,0,0,.7);
+  border: none;
+  color: #fff;
+  font-size: 20px;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: background .2s;
+  line-height: 1;
+}
+.modal-close:hover { background: var(--accent); }
+
+/* ── Modal backdrop ──────────────────────────────────────────── */
+.modal-backdrop-wrap { position: relative; }
+.modal-backdrop {
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+  display: block;
+}
+.modal-backdrop-wrap::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 60%;
+  background: linear-gradient(transparent, var(--surface));
+}
+
+/* ── Modal body ──────────────────────────────────────────────── */
+.modal-body { padding: 0 28px 32px; }
+
+.modal-top {
+  display: flex;
+  gap: 24px;
+  margin-top: -60px;
+  position: relative;
+  z-index: 1;
+  align-items: flex-end;
+  margin-bottom: 20px;
+}
+.modal-poster {
+  width: 110px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 8px 28px rgba(0,0,0,.6);
+}
+.modal-poster img { width: 100%; display: block; }
+
+.modal-info h1 {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.25;
+  margin-bottom: 8px;
+}
+.modal-original { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.modal-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 12px;
+  align-items: center;
+}
+.modal-meta .rating { color: var(--gold); font-weight: 700; font-size: 15px; }
+
+.genre-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.genre-tag {
+  background: rgba(229,9,20,.15);
+  color: var(--accent);
+  border: 1px solid rgba(229,9,20,.3);
+  padding: 4px 12px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+}
+.genre-tag:hover { background: var(--accent); color: #fff; }
+
+.modal-overview {
+  font-size: 14px;
+  color: #bbb;
+  line-height: 1.85;
+  margin: 18px 0 24px;
+}
+
+/* ── Section label ───────────────────────────────────────────── */
+.section-label {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--accent);
+  display: inline-block;
+}
+
+/* ── Trailer ─────────────────────────────────────────────────── */
+.trailer-wrap {
+  position: relative;
+  padding-bottom: 56.25%;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #000;
+  margin-bottom: 10px;
+}
+.trailer-wrap iframe,
+.trailer-wrap #ytPlayer {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  border: none;
+}
+.trailer-fallback {
+  margin-bottom: 24px;
+}
+.trailer-fallback a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 22px;
+  border-radius: 8px;
+  transition: opacity .2s;
+}
+.trailer-fallback a:hover { opacity: .85; }
+.trailer-mb { margin-bottom: 32px; }
+.no-trailer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 60px;
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 32px;
+}
+
+/* ── Comment ─────────────────────────────────────────────────── */
+.comment-section { margin-bottom: 32px; }
+.comment-input-wrap {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  align-items: flex-start;
+}
+.comment-textarea {
+  flex: 1;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: none;
+  min-height: 72px;
+  outline: none;
+  transition: border-color .2s;
+}
+.comment-textarea:focus { border-color: var(--accent); }
+.comment-textarea::placeholder { color: var(--muted); }
+.comment-submit {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity .2s;
+  align-self: flex-start;
+}
+.comment-submit:hover { opacity: .85; }
+
+.comment-list { display: flex; flex-direction: column; gap: 10px; }
+.comment-item {
+  background: var(--card);
+  border-radius: 8px;
+  padding: 12px 16px;
+  border-left: 3px solid var(--accent);
+}
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.comment-nick { font-size: 13px; font-weight: 700; color: var(--accent); }
+.comment-date { font-size: 11px; color: var(--muted); }
+.comment-del {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: inherit;
+  transition: color .2s;
+  margin-left: 8px;
+}
+.comment-del:hover { color: var(--accent); }
+.comment-text {
+  font-size: 13.5px;
+  color: #ccc;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.no-comment {
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 24px 0;
+}
+
+/* ── Similar movies ──────────────────────────────────────────── */
+.similar-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.similar-scroll::-webkit-scrollbar { height: 4px; }
+.similar-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.similar-card {
+  flex-shrink: 0;
+  width: 115px;
+  cursor: pointer;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--card);
+  transition: transform .2s;
+}
+.similar-card:hover { transform: scale(1.06); }
+.similar-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; }
+.similar-title {
+  padding: 6px 8px 8px;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.similar-rating { font-size: 10px; color: var(--gold); padding: 0 8px 6px; }
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  header { padding: 12px 16px; }
+  .movie-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); padding: 0 16px 24px; }
+  .modal-body { padding: 0 16px 24px; }
+  .modal-top { flex-direction: column; margin-top: -40px; gap: 12px; }
+  .modal-poster { width: 80px; }
+  .modal-info h1 { font-size: 18px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <div class="logo" onclick="resetHome()">🎬 CineHub</div>
+  <div class="search-wrap">
+    <input type="text" id="searchInput" placeholder="영화 제목으로 검색...">
+    <span class="search-icon">🔍</span>
+    <span class="search-clear" id="searchClear" onclick="clearSearch()">✕</span>
+  </div>
+</header>
+
+<!-- ── Genre bar ── -->
+<div class="genre-bar" id="genreBar">
+  <button class="genre-btn active" data-id="0" onclick="filterGenre(0, this)">전체</button>
+</div>
+
+<!-- ── Section head ── -->
+<div class="section-head">
+  <h2 id="sectionTitle">인기 영화</h2>
+  <span class="section-sub" id="sectionSub">TMDB 기준 인기 순위</span>
+</div>
+
+<!-- ── Movie grid ── -->
+<div class="movie-grid" id="movieGrid">
+  <div class="spinner-wrap"><div class="spinner"></div></div>
+</div>
+
+<div class="load-more-wrap" id="loadMoreWrap" style="display:none">
+  <button class="load-more-btn" onclick="loadMore()">더 보기</button>
+</div>
+
+<!-- ── Modal ── -->
+<div class="modal-overlay" id="modalOverlay" onclick="overlayClick(event)">
+  <div class="modal" id="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<script>
+// ⚠️ 실무에서는 API 키를 서버 환경변수로 관리해야 합니다.
+// 이 프로젝트는 학습용이므로 클라이언트에 키를 포함했습니다.
+const API_KEY = '42372a27a9af40b3ccd3d9bb2eda9d31';
+const BASE  = 'https://api.themoviedb.org/3';
+const IMG500   = 'https://image.tmdb.org/t/p/w500';
+const IMG780   = 'https://image.tmdb.org/t/p/w780';
+const LANG     = 'ko-KR';
+
+// ── State ────────────────────────────────────────────────────────
+const state = {
+  movies:    [],
+  page:      1,
+  totalPages: 1,
+  genreId:   0,
+  query:     '',
+  loading:   false,
+};
+
+// ── API helper ───────────────────────────────────────────────────
+async function tmdb(path, params = {}) {
+  const q = new URLSearchParams({ api_key: API_KEY, language: LANG, ...params });
+  const res = await fetch(`${BASE}${path}?${q}`);
+  if (!res.ok) throw new Error(res.status);
+  return res.json();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════════════
+async function init() {
+  await loadGenres();
+  await loadMovies(1, true);
+}
+
+// ── Genre list ───────────────────────────────────────────────────
+async function loadGenres() {
+  try {
+    const data = await tmdb('/genre/movie/list');
+    const bar  = document.getElementById('genreBar');
+    data.genres.forEach(g => {
+      const btn = document.createElement('button');
+      btn.className  = 'genre-btn';
+      btn.dataset.id = g.id;
+      btn.textContent = g.name;
+      btn.onclick = () => filterGenre(g.id, btn);
+      bar.appendChild(btn);
+    });
+  } catch { /* 장르 없이 계속 진행 */ }
+}
+
+// ── Movie list ───────────────────────────────────────────────────
+async function loadMovies(page = 1, reset = false) {
+  if (state.loading) return;
+  state.loading = true;
+
+  const grid = document.getElementById('movieGrid');
+  if (reset) grid.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>';
+
+  try {
+    let data;
+    if (state.query) {
+      data = await tmdb('/search/movie', { query: state.query, page });
+    } else if (state.genreId) {
+      data = await tmdb('/discover/movie', {
+        with_genres: state.genreId,
+        sort_by: 'popularity.desc',
+        page,
+      });
+    } else {
+      data = await tmdb('/movie/popular', { page });
+    }
+
+    state.page       = page;
+    state.totalPages = Math.min(data.total_pages, 10);
+    const fresh = data.results.filter(m => m.poster_path);
+    state.movies = reset ? fresh : [...state.movies, ...fresh];
+
+    if (reset) grid.innerHTML = '';
+
+    if (state.movies.length === 0) {
+      grid.innerHTML = `<div class="no-results">
+        <h3>검색 결과가 없습니다</h3>
+        <p>다른 검색어나 장르를 시도해 보세요</p>
+      </div>`;
+    } else {
+      if (reset) {
+        fresh.forEach((m, i) => grid.appendChild(makeCard(m, i)));
+      } else {
+        fresh.forEach(m => grid.appendChild(makeCard(m)));
+      }
+    }
+
+    document.getElementById('loadMoreWrap').style.display =
+      page < state.totalPages ? 'block' : 'none';
+
+  } catch {
+    grid.innerHTML = `<div class="no-results">
+      <h3>⚠️ 데이터를 불러올 수 없습니다</h3>
+      <p>API 키를 확인하거나 잠시 후 다시 시도해 주세요</p>
+    </div>`;
+  } finally {
+    state.loading = false;
+  }
+}
+
+function loadMore() { loadMovies(state.page + 1, false); }
+
+// ── Movie card ───────────────────────────────────────────────────
+function getWatched() {
+  return JSON.parse(localStorage.getItem('trailer_watched') || '[]');
+}
+function markWatched(movieId) {
+  const list = getWatched();
+  if (!list.includes(movieId)) {
+    list.push(movieId);
+    localStorage.setItem('trailer_watched', JSON.stringify(list));
+  }
+  document.querySelectorAll(`.movie-card[data-id="${movieId}"]`)
+    .forEach(el => el.classList.add('trailer-watched'));
+}
+
+function makeCard(movie, rank) {
+  const card  = document.createElement('div');
+  const watched = getWatched();
+  card.className = 'movie-card' + (watched.includes(movie.id) ? ' trailer-watched' : '');
+  card.dataset.id = movie.id;
+  card.onclick   = () => openModal(movie.id);
+
+  const year   = (movie.release_date || '').slice(0, 4) || '—';
+  const rating = movie.vote_average ? movie.vote_average.toFixed(1) : '—';
+  const rankBadge = (rank !== undefined && rank < 10)
+    ? `<div class="rank-badge">${rank + 1}</div>` : '';
+
+  card.innerHTML = `
+    <div class="poster-wrap">
+      <img src="${IMG500}${movie.poster_path}" alt="${movie.title}" loading="lazy"
+           onerror="this.parentNode.style.background='#1e1e1e';this.style.display='none'">
+      <div class="play-icon">▶</div>
+      ${rankBadge}
+    </div>
+    <div class="card-info">
+      <div class="card-title">${movie.title}</div>
+      <div class="card-meta">
+        <span>${year}</span>
+        <span class="card-rating">★ ${rating}</span>
+      </div>
+    </div>`;
+  return card;
+}
+
+// ════════════════════════════════════════════════════════════════
+//  MODAL
+// ════════════════════════════════════════════════════════════════
+async function openModal(movieId) {
+  const overlay = document.getElementById('modalOverlay');
+  const content = document.getElementById('modalContent');
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  content.innerHTML = '<div class="spinner-wrap" style="padding:100px"><div class="spinner"></div></div>';
+
+  try {
+    const [detail, videos, videosEn, similar] = await Promise.all([
+      tmdb(`/movie/${movieId}`),
+      tmdb(`/movie/${movieId}/videos`),
+      tmdb(`/movie/${movieId}/videos`, { language: 'en-US' }),
+      tmdb(`/movie/${movieId}/similar`),
+    ]);
+
+    // 한국어 예고편 우선, 없으면 영어 예고편으로 폴백
+    const allVideos = [...videos.results, ...videosEn.results];
+    const trailer = allVideos.find(v => v.type === 'Trailer' && v.site === 'YouTube')
+                 || allVideos.find(v => v.site === 'YouTube');
+
+    const simList = similar.results.filter(m => m.poster_path).slice(0, 12);
+    renderModal(detail, trailer, simList);
+  } catch {
+    content.innerHTML = '<div style="padding:60px;text-align:center;color:#888">데이터를 불러올 수 없습니다</div>';
+  }
+}
+
+function renderModal(movie, trailer, similar) {
+  const year    = (movie.release_date || '').slice(0, 4) || '—';
+  const rating  = movie.vote_average ? movie.vote_average.toFixed(1) : '—';
+  const runtime = movie.runtime ? `${movie.runtime}분` : '';
+  const genres  = movie.genres || [];
+
+  // Backdrop
+  const backdropHtml = movie.backdrop_path
+    ? `<div class="modal-backdrop-wrap">
+         <img class="modal-backdrop" src="${IMG780}${movie.backdrop_path}" alt="">
+       </div>`
+    : '<div style="height:80px"></div>';
+
+  // Poster
+  const posterHtml = movie.poster_path
+    ? `<div class="modal-poster"><img src="${IMG500}${movie.poster_path}" alt="${movie.title}"></div>`
+    : '';
+
+  // Genre tags (클릭하면 해당 장르로 필터링)
+  const genreTagsHtml = genres.map(g =>
+    `<span class="genre-tag" onclick="closeModal();filterGenreClick(${g.id},'${g.name}')">${g.name}</span>`
+  ).join('');
+
+  // Trailer
+  const trailerHtml = trailer
+    ? `<div class="trailer-wrap trailer-mb" id="trailerWrap"><div id="ytPlayer"></div></div>
+       <div class="trailer-fallback trailer-mb">
+         <a href="https://www.youtube.com/watch?v=${trailer.key}" target="_blank" onclick="markWatched(${movie.id})">▶ YouTube에서 보기</a>
+       </div>`
+    : '<div class="no-trailer trailer-mb">🎬 예고편을 찾을 수 없습니다</div>';
+
+  // Similar movies
+  const similarHtml = similar.length
+    ? similar.map(m => `
+        <div class="similar-card" onclick="openModal(${m.id})">
+          <img src="${IMG500}${m.poster_path}" alt="${m.title}" loading="lazy">
+          <div class="similar-rating">★ ${m.vote_average?.toFixed(1) || '—'}</div>
+          <div class="similar-title">${m.title}</div>
+        </div>`).join('')
+    : '<span style="color:var(--muted);font-size:13px">추천 영화를 찾을 수 없습니다</span>';
+
+  document.getElementById('modalContent').innerHTML = `
+    ${backdropHtml}
+    <div class="modal-body">
+      <div class="modal-top">
+        ${posterHtml}
+        <div class="modal-info">
+          <h1>${movie.title}</h1>
+          ${movie.original_title && movie.original_title !== movie.title
+            ? `<div class="modal-original">${movie.original_title}</div>` : ''}
+          <div class="modal-meta">
+            <span>${year}</span>
+            ${runtime ? `<span>·</span><span>${runtime}</span>` : ''}
+            <span>·</span>
+            <span class="rating">★ ${rating}</span>
+            ${movie.vote_count ? `<span style="font-size:11px">(${movie.vote_count.toLocaleString()}명)</span>` : ''}
+          </div>
+          <div class="genre-tags">${genreTagsHtml}</div>
+        </div>
+      </div>
+
+      ${movie.overview
+        ? `<p class="modal-overview">${movie.overview}</p>`
+        : '<p class="modal-overview" style="color:var(--muted)">줄거리 정보가 없습니다.</p>'}
+
+      <div class="section-label">🎬 예고편</div>
+      ${trailerHtml}
+
+      <div class="comment-section">
+        <div class="section-label">💬 예고편 평가</div>
+        <div class="comment-input-wrap">
+          <textarea class="comment-textarea" id="commentInput"
+                    placeholder="이 영화의 예고편을 보고 느낀 점을 남겨보세요..." rows="3"></textarea>
+          <button class="comment-submit" onclick="submitComment(${movie.id})">등록</button>
+        </div>
+        <div class="comment-list" id="commentList"></div>
+      </div>
+
+      <div class="section-label">🎥 비슷한 영화</div>
+      <div class="similar-scroll">${similarHtml}</div>
+    </div>`;
+
+  renderComments(movie.id);
+  if (trailer) initTrailerPlayer(trailer.key, movie.id);
+}
+
+function overlayClick(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+  // iframe 제거 (YouTube 자동 재생 중지)
+  document.getElementById('modalContent').innerHTML = '';
+}
+
+// ════════════════════════════════════════════════════════════════
+//  COMMENT  (localStorage)
+// ════════════════════════════════════════════════════════════════
+function getComments(movieId) {
+  return JSON.parse(localStorage.getItem(`ch_${movieId}`) || '[]');
+}
+function setComments(movieId, list) {
+  localStorage.setItem(`ch_${movieId}`, JSON.stringify(list));
+}
+
+function submitComment(movieId) {
+  const el   = document.getElementById('commentInput');
+  const text = el.value.trim();
+  if (!text) { el.focus(); return; }
+
+  const list = getComments(movieId);
+  list.unshift({
+    id:   Date.now(),
+    text,
+    date: new Date().toLocaleString('ko-KR', {
+      month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit'
+    }),
+  });
+  setComments(movieId, list);
+  el.value = '';
+  renderComments(movieId);
+}
+
+function deleteComment(movieId, id) {
+  setComments(movieId, getComments(movieId).filter(c => c.id !== id));
+  renderComments(movieId);
+}
+
+function renderComments(movieId) {
+  const el   = document.getElementById('commentList');
+  if (!el) return;
+  const list = getComments(movieId);
+  if (!list.length) {
+    el.innerHTML = '<div class="no-comment">첫 번째 댓글을 남겨보세요 ✍️</div>';
+    return;
+  }
+  el.innerHTML = list.map(c => `
+    <div class="comment-item">
+      <div class="comment-header">
+        <span class="comment-nick">🎭 관람객</span>
+        <span>
+          <span class="comment-date">${c.date}</span>
+          <button class="comment-del" onclick="deleteComment(${movieId}, ${c.id})">삭제</button>
+        </span>
+      </div>
+      <div class="comment-text">${escHtml(c.text)}</div>
+    </div>`).join('');
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SEARCH & GENRE FILTER
+// ════════════════════════════════════════════════════════════════
+let searchTimer;
+document.getElementById('searchInput').addEventListener('input', function () {
+  const q = this.value.trim();
+  document.getElementById('searchClear').style.display = q ? 'inline' : 'none';
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    state.query   = q;
+    state.genreId = 0;
+    setActiveGenre(0);
+    document.getElementById('sectionTitle').textContent =
+      q ? `"${q}" 검색 결과` : '인기 영화';
+    document.getElementById('sectionSub').textContent =
+      q ? '' : 'TMDB 기준 인기 순위';
+    loadMovies(1, true);
+  }, 480);
+});
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('searchClear').style.display = 'none';
+  state.query = '';
+  document.getElementById('sectionTitle').textContent = '인기 영화';
+  document.getElementById('sectionSub').textContent   = 'TMDB 기준 인기 순위';
+  loadMovies(1, true);
+}
+
+function filterGenre(id, btn) {
+  state.genreId = id;
+  state.query   = '';
+  document.getElementById('searchInput').value = '';
+  document.getElementById('searchClear').style.display = 'none';
+  setActiveGenre(id);
+  document.getElementById('sectionTitle').textContent =
+    id === 0 ? '인기 영화' : btn.textContent;
+  document.getElementById('sectionSub').textContent  =
+    id === 0 ? 'TMDB 기준 인기 순위' : `${btn.textContent} 장르 인기작`;
+  loadMovies(1, true);
+}
+
+function filterGenreClick(id, name) {
+  state.genreId = id;
+  state.query   = '';
+  document.getElementById('searchInput').value = '';
+  document.getElementById('searchClear').style.display = 'none';
+  setActiveGenre(id);
+  document.getElementById('sectionTitle').textContent = name;
+  document.getElementById('sectionSub').textContent   = `${name} 장르 인기작`;
+  loadMovies(1, true);
+}
+
+function setActiveGenre(id) {
+  document.querySelectorAll('.genre-btn').forEach(b => {
+    b.classList.toggle('active', Number(b.dataset.id) === Number(id));
+  });
+}
+
+function resetHome() {
+  state.query   = '';
+  state.genreId = 0;
+  document.getElementById('searchInput').value = '';
+  document.getElementById('searchClear').style.display = 'none';
+  setActiveGenre(0);
+  document.getElementById('sectionTitle').textContent = '인기 영화';
+  document.getElementById('sectionSub').textContent   = 'TMDB 기준 인기 순위';
+  loadMovies(1, true);
+}
+
+// ════════════════════════════════════════════════════════════════
+//  YOUTUBE PLAYER
+// ════════════════════════════════════════════════════════════════
+let ytReady = false;
+let ytQueue = [];
+let ytPlayer = null;
+
+(function() {
+  const s = document.createElement('script');
+  s.src = 'https://www.youtube.com/iframe_api';
+  document.head.appendChild(s);
+})();
+
+window.onYouTubeIframeAPIReady = function() {
+  ytReady = true;
+  ytQueue.forEach(fn => fn());
+  ytQueue = [];
+};
+
+function initTrailerPlayer(videoKey, movieId) {
+  const run = () => {
+    const el = document.getElementById('ytPlayer');
+    if (!el) return;
+    if (ytPlayer) { try { ytPlayer.destroy(); } catch(e) {} ytPlayer = null; }
+    ytPlayer = new YT.Player('ytPlayer', {
+      videoId: videoKey,
+      width: '100%',
+      playerVars: { rel: 0, modestbranding: 1, autoplay: 0 },
+      events: {
+        onStateChange: (e) => {
+          if (e.data === YT.PlayerState.PLAYING) markWatched(movieId);
+        }
+      }
+    });
+  };
+  ytReady ? run() : ytQueue.push(run);
+}
+
+// ESC로 모달 닫기
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ── Start ────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
